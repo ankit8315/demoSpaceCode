@@ -7,7 +7,6 @@ target 'demoMap' do
 
   # Pods for demoMap
 
-pod 'Layoutless'
 
   target 'demoMapTests' do
     inherit! :search_paths
