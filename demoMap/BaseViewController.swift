@@ -15,15 +15,18 @@ class BaseViewController: UIViewController {
         // Do any additional setup after loading the view.
     }
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    
+    func showAlert(message: String?) {
+        
+      
+        let alertCtroller = UIAlertController.init(title: "Maps", message: message, preferredStyle: UIAlertController.Style.alert)
+        let action = UIAlertAction.init(title: "Ok", style: .default) { (alert) in
+          print("action")
+        }
+        alertCtroller.addAction(action)
+        self.present(alertCtroller, animated: true, completion: nil)
     }
-    */
-
-}
+    
+    
+    
+    }
