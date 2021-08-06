@@ -27,6 +27,11 @@ class ViewController: BaseViewController {
     let locationDistance :Double = 500;
     var speechSynthesizer  = AVSpeechSynthesizer()
     var destinationAnnotation = MKPointAnnotation()
+    var sourceAnnotation = MKPointAnnotation()
+    var initialValue = 0;
+    var destinationCordinate:CLLocationCoordinate2D?
+    
+    
     
     lazy var locationManager:CLLocationManager = {
         let locationManager = CLLocationManager();
@@ -40,7 +45,7 @@ class ViewController: BaseViewController {
         return locationManager
     }()
     
- 
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -60,31 +65,47 @@ class ViewController: BaseViewController {
         getDirectionButton.layer.borderColor = blueColor.cgColor
         
         locationManager.stopUpdatingLocation()
-        
-       
-       
-        
     }
+    
     
     @objc func updateLocation() {
         
         if CLLocationManager.locationServicesEnabled() {
-             switch CLLocationManager.authorizationStatus() {
-                case .notDetermined, .restricted, .denied:
-                   print("No access")
-                case .authorizedAlways, .authorizedWhenInUse:
+            switch CLLocationManager.authorizationStatus() {
+            case .notDetermined, .restricted, .denied:
+                print("No access")
+            case .authorizedAlways, .authorizedWhenInUse:
+                let totalsteps = steps.count;
+                
+                if let route = route {
                     
-                    print ("updating user location as per timer ")
-                    locationManager.startUpdatingLocation()
-             }
-          } else {
-             print("Location services not enabled")
-          }
-     
+                    let points = route.polyline.points()
+                    
+                    let mp = points[initialValue] as MKMapPoint
+                    
+                    UIView.animate(withDuration: 5.0, animations: {
+                        self.sourceAnnotation.coordinate = mp.coordinate
+                        
+                    }, completion:  { _ in
+                        
+                        self.initialValue += 1
+                    })
+                }
+                
+            //                    locationManager.startUpdatingLocation()
+            }
+        } else {
+            print("Location services not enabled")
+        }
+        
     }
     
     
+    
+    
     @IBAction func getDirectionButtonTapped(_ sender: Any) {
+        
+        initialValue = 0;
         
         navigationStarted = false;
         startStopButton.setTitle(navigationStarted ? "Stop Navigation" : "Start Navigation", for: .normal)
@@ -92,10 +113,10 @@ class ViewController: BaseViewController {
         //Remove Overlay (Map path in blue color)
         let overlays = mapView.overlays
         mapView.removeOverlays(overlays)
-
+        
         //Stop speech
         speechSynthesizer.stopSpeaking(at: .immediate)
-
+        
         
         self.mapView.removeAnnotation(destinationAnnotation)
         
@@ -115,27 +136,30 @@ class ViewController: BaseViewController {
                   let placemark = placemarks.first,
                   let location = placemark.location else {return}
             
-            let destinationCordinate = location.coordinate
+            self.destinationCordinate = location.coordinate
             
-        
+            
             // point B
-                
-            self.destinationAnnotation.coordinate = destinationCordinate
+            
+            self.destinationAnnotation.coordinate = self.destinationCordinate!
             self.mapView.addAnnotation(self.destinationAnnotation)
             
-            self.mapRoute(destinationCoordinate: destinationCordinate)
+            self.mapRoute(destinationCoordinate: self.destinationCordinate!)
         }
     }
     
     
     @IBAction func startStopButtonTapped(_ sender: Any) {
+        initialValue = 0;
         if !navigationStarted{
-            self.timer = Timer.scheduledTimer(timeInterval: 5.0, target: self, selector: #selector(updateLocation), userInfo: nil, repeats: true)
+            
+            self.timer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateLocation), userInfo: nil, repeats: true)
             showMapRoute = true
             if let location = locationManager.location{
                 
                 let center = location.coordinate
                 centerViewToUserLocation(center: center)
+                //                updateLocation()
                 
             }
         }else{
@@ -156,18 +180,18 @@ class ViewController: BaseViewController {
     }
     
     
-
-  
+    
+    
     
     
     fileprivate func centerViewToUserLocation(center: CLLocationCoordinate2D) {
         let region = MKCoordinateRegion(center: center, latitudinalMeters: locationDistance, longitudinalMeters: locationDistance)
         mapView.setRegion(region, animated: true)
-       
+        
         // point A
-        let pin = MKPointAnnotation()
-        pin.coordinate = center
-        mapView.addAnnotation(pin)
+        
+        sourceAnnotation.coordinate = center
+        mapView.addAnnotation(sourceAnnotation)
         
     }
     
@@ -245,22 +269,17 @@ class ViewController: BaseViewController {
             locationManager.stopMonitoring(for: region)
         }
         stepCounter += 1
-        
-        
-        
-      
-        
         let initailmessage = "In \(converttoStr(input: steps[stepCounter].distance)) meters \(steps[stepCounter].instructions) , then in \(converttoStr(input: steps[stepCounter+1].distance)) meters \(steps[stepCounter + 1 ].instructions)"
         directionLabel.text = initailmessage;
         let speechUtter = AVSpeechUtterance(string: initailmessage)
         speechSynthesizer.speak(speechUtter)
-
+        
     }
     
     
     func converttoStr(input:Double) -> String{
         return String(format: "%.2f",input)
-         
+        
     }
     
 }
@@ -300,19 +319,19 @@ extension ViewController : CLLocationManagerDelegate{
                 locationManager.stopMonitoring(for: monitoredRegion)
             }
         }
-      print("didEnterRegion")
+        print("didEnterRegion")
     }
     
 }
 
 extension ViewController : MKMapViewDelegate{
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-     
-            let renderer = MKPolylineRenderer(overlay: overlay)
-            renderer.strokeColor = .systemTeal
-            return renderer
         
-       
+        let renderer = MKPolylineRenderer(overlay: overlay)
+        renderer.strokeColor = .systemTeal
+        return renderer
+        
+        
     }
     
     
